@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EulerGames | Grúa de Rescate</title>
+  <style>
+    :root {
+      --bg: #eaf6fb;
+      --panel: #fffaf0;
+      --panel-2: #ffffff;
+      --line: #b9d2df;
+      --text: #213547;
+      --muted: #617080;
+      --accent: #f59e0b;
+      --accent-2: #0ea5e9;
+      --good: #15803d;
+      --bad: #dc2626;
+      --warn: #d97706;
+      --shadow: rgba(55, 93, 117, 0.18);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(255, 224, 138, 0.95), transparent 10rem),
+        linear-gradient(180deg, #dff4ff 0%, #f8fcff 48%, #eef8ec 100%);
+    }
+
+    .app {
+      width: min(1400px, 100%);
+      margin: 0 auto;
+      padding: 14px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 3vw, 2.25rem);
+      letter-spacing: 0.01em;
+    }
+
+    .title-block p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .score-card {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      background: rgba(255, 250, 240, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: var(--muted);
+      box-shadow: 0 10px 24px var(--shadow);
+      white-space: nowrap;
+    }
+
+    .pill strong { color: var(--text); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 305px minmax(0, 1fr) 305px;
+      grid-template-areas: "left stage right";
+      gap: 14px;
+      align-items: start;
+    }
+
+    .stage-card,
+    .panel {
+      background: rgba(255, 250, 240, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: 0 18px 42px var(--shadow);
+      overflow: hidden;
+    }
+
+    .left-panel { grid-area: left; }
+    .right-panel { grid-area: right; }
+    .stage-card { grid-area: stage; min-height: 500px; }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: min(62vh, 600px);
+      min-height: 430px;
+      background: linear-gradient(to bottom, #afe2ff 0%, #eaf8ff 55%, #e9f5d8 100%);
+    }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px 14px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.74);
+    }
+
+    .message {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .message strong {
+      color: var(--accent);
+      font-weight: 850;
+    }
+
+    .panel { padding: 14px; }
+
+    .panel h2 {
+      margin: 0 0 9px;
+      font-size: 1.03rem;
+      color: #b45309;
+    }
+
+    .panel-section + .panel-section {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px dashed rgba(97, 112, 128, 0.25);
+    }
+
+    .data-grid { display: grid; gap: 7px; }
+
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 9px;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(185, 210, 223, 0.95);
+      border-radius: 12px;
+      font-size: 0.91rem;
+    }
+
+    .data-row span:first-child { color: var(--muted); }
+    .data-row span:last-child { font-weight: 800; text-align: right; }
+
+    .current-distance {
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(14, 165, 233, 0.12));
+      border: 1px solid rgba(245, 158, 11, 0.42);
+      border-radius: 16px;
+    }
+
+    .current-distance .label { color: var(--muted); font-size: 0.88rem; }
+    .current-distance .value {
+      margin-top: 2px;
+      font-size: 2.1rem;
+      font-weight: 950;
+      letter-spacing: 0.01em;
+    }
+
+    .controls,
+    .fine-controls,
+    .action-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 9px;
+    }
+
+    .action-row { grid-template-columns: 1fr; margin-top: 12px; }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 10px 10px;
+      background: var(--panel-2);
+      color: var(--text);
+      font-weight: 850;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      border: 1px solid rgba(14, 165, 233, 0.32);
+      transition: transform 0.08s ease, filter 0.15s ease, border-color 0.15s ease;
+      user-select: none;
+      box-shadow: 0 8px 18px rgba(55, 93, 117, 0.10);
+    }
+
+    button small { color: var(--muted); font-weight: 750; }
+    button:hover:not(:disabled) { filter: brightness(1.03); border-color: rgba(14, 165, 233, 0.72); }
+    button:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .primary {
+      background: linear-gradient(135deg, #f59e0b, #ffd166);
+      color: #2b1d06;
+      border-color: rgba(245, 158, 11, 0.7);
+    }
+
+    .secondary {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(255, 255, 255, 0.9));
+    }
+
+    .result-box {
+      padding: 11px;
+      border-radius: 16px;
+      background: rgba(232, 247, 255, 0.72);
+      border: 1px solid rgba(185, 210, 223, 0.95);
+    }
+
+    .result-box h3 { margin: 0 0 8px; font-size: 0.98rem; color: var(--text); }
+
+    .result-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px dashed rgba(97, 112, 128, 0.22);
+      font-size: 0.9rem;
+    }
+
+    .result-line:last-child { border-bottom: 0; }
+    .result-line span:first-child { color: var(--muted); }
+    .result-line span:last-child { font-weight: 800; text-align: right; }
+
+    .hint { margin: 9px 0 0; color: var(--muted); font-size: 0.86rem; line-height: 1.4; }
+
+    .kbd {
+      display: inline-block;
+      min-width: 1.7em;
+      padding: 1px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(97, 112, 128, 0.34);
+      background: rgba(255, 255, 255, 0.75);
+      color: var(--text);
+      font-weight: 850;
+      text-align: center;
+    }
+
+    .quiet-note {
+      margin: 0;
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(185, 210, 223, 0.7);
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.38;
+    }
+
+    @media (max-width: 1120px) {
+      .layout {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          "stage stage"
+          "left right";
+      }
+      canvas { height: 56vh; }
+    }
+
+    @media (max-width: 720px) {
+      .app { padding: 10px; }
+      header { align-items: flex-start; flex-direction: column; }
+      .score-card { justify-content: flex-start; }
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "left"
+          "stage"
+          "right";
+      }
+      .status-strip { grid-template-columns: 1fr; }
+      .controls,
+      .fine-controls { grid-template-columns: 1fr; }
+      canvas { min-height: 390px; height: 52vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title-block">
+        <h1>Grúa de Rescate</h1>
+        <p>EulerGames · equilibrio rotacional y torque</p>
+      </div>
+      <div class="score-card">
+        <div class="pill">Ronda: <strong id="roundLabel">1</strong></div>
+        <div class="pill">Éxitos: <strong id="successLabel">0</strong></div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="panel left-panel" aria-label="Datos y resultado">
+        <section class="panel-section">
+          <h2>Datos de la ronda</h2>
+          <div class="data-grid">
+            <div class="data-row"><span>Masa de la carga</span><span id="loadMassLabel">—</span></div>
+            <div class="data-row"><span>Distancia de la carga</span><span id="loadDistanceLabel">—</span></div>
+            <div class="data-row"><span>Masa del lastre derecho</span><span id="rightBallastMassLabel">—</span></div>
+            <div class="data-row"><span>Distancia del lastre</span><span id="rightBallastDistanceLabel">—</span></div>
+            <div class="data-row"><span>Masa del contrapeso</span><span id="counterMassLabel">—</span></div>
+            <div class="data-row"><span>Riel disponible</span><span>0.00 m a 7.00 m</span></div>
+            <div class="data-row"><span>Zona segura</span><span>±5%</span></div>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="result-box" id="resultBox">
+            <h3>Resultado del intento</h3>
+            <div class="result-line"><span>Torque derecho total</span><span id="rightTorqueLabel">—</span></div>
+            <div class="result-line"><span>Torque del contrapeso</span><span id="counterTorqueLabel">—</span></div>
+            <div class="result-line"><span>Relación</span><span id="ratioLabel">—</span></div>
+            <div class="result-line"><span>Desviación</span><span id="deviationLabel">—</span></div>
+            <div class="result-line"><span>Diagnóstico</span><span id="diagnosisLabel">—</span></div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="stage-card" aria-label="Escenario del juego">
+        <canvas id="gameCanvas"></canvas>
+        <div class="status-strip">
+          <div class="message" id="messageBox">
+            La pluma inicia caída hacia la carga. Ajusta el contrapeso para recuperar la horizontal.
+          </div>
+          <button id="soundButton" class="secondary" type="button">Sonido: apagado</button>
+        </div>
+      </section>
+
+      <aside class="panel right-panel" aria-label="Panel de control">
+        <section class="panel-section">
+          <h2>Contrapeso</h2>
+          <div class="current-distance">
+            <div class="label">Distancia actual al eje</div>
+            <div class="value" id="counterDistanceLabel">—</div>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>Controles</h2>
+          <div class="controls">
+            <button id="leftButton" type="button">← Alejar<br><small>+0.10 m</small></button>
+            <button id="rightButton" type="button">→ Acercar<br><small>−0.10 m</small></button>
+          </div>
+          <div class="fine-controls">
+            <button id="upButton" type="button">↑ Fino +<br><small>+0.01 m</small></button>
+            <button id="downButton" type="button">↓ Fino −<br><small>−0.01 m</small></button>
+          </div>
+          <div class="action-row">
+            <button id="testButton" class="primary" type="button">Probar levantamiento</button>
+            <button id="newRoundButton" class="secondary" type="button">Nueva ronda</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>Cómo jugar</h2>
+          <p class="quiet-note">
+            La pluma inicia inclinada por la carga y por un lastre fijo del lado derecho.
+            Haz el cálculo aparte, mueve el contrapeso y prueba si la grúa recupera la horizontal.
+          </p>
+          <p class="hint">
+            Teclado: <span class="kbd">←</span>/<span class="kbd">→</span> ajuste de 0.10 m ·
+            <span class="kbd">↑</span>/<span class="kbd">↓</span> ajuste de 0.01 m ·
+            <span class="kbd">Enter</span> probar.
+          </p>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const ui = {
+        roundLabel: document.getElementById("roundLabel"),
+        successLabel: document.getElementById("successLabel"),
+        messageBox: document.getElementById("messageBox"),
+        soundButton: document.getElementById("soundButton"),
+        loadMassLabel: document.getElementById("loadMassLabel"),
+        loadDistanceLabel: document.getElementById("loadDistanceLabel"),
+        rightBallastMassLabel: document.getElementById("rightBallastMassLabel"),
+        rightBallastDistanceLabel: document.getElementById("rightBallastDistanceLabel"),
+        counterMassLabel: document.getElementById("counterMassLabel"),
+        counterDistanceLabel: document.getElementById("counterDistanceLabel"),
+        rightTorqueLabel: document.getElementById("rightTorqueLabel"),
+        counterTorqueLabel: document.getElementById("counterTorqueLabel"),
+        ratioLabel: document.getElementById("ratioLabel"),
+        deviationLabel: document.getElementById("deviationLabel"),
+        diagnosisLabel: document.getElementById("diagnosisLabel"),
+        leftButton: document.getElementById("leftButton"),
+        rightButton: document.getElementById("rightButton"),
+        upButton: document.getElementById("upButton"),
+        downButton: document.getElementById("downButton"),
+        testButton: document.getElementById("testButton"),
+        newRoundButton: document.getElementById("newRoundButton")
+      };
+
+      const config = {
+        railMin: 0.00,
+        railMax: 7.00,
+        idealMin: 1.00,
+        idealMax: 6.85,
+        startTilt: 0.28,
+        hookOffsetM: 0.08,
+        tolerance: 0.05,
+        coarseStep: 0.10,
+        fineStep: 0.01,
+        loadMassMin: 320,
+        loadMassMax: 820,
+        loadDistanceMin: 3.70,
+        loadDistanceMax: 7.00,
+        rightBallastMassMin: 80,
+        rightBallastMassMax: 320,
+        rightBallastDistanceMin: 1.20,
+        rightBallastDistanceMax: 4.20,
+        counterMassMin: 850,
+        counterMassMax: 1800,
+        resultDelayMs: 2100,
+        minFailAnimationMs: 850,
+        maxFailAnimationMs: 6500,
+        gravity: 9.81,
+        armMass: 420,
+        failDamping: 0.16,
+        maxPhysicsStep: 0.026,
+        resultHoldMs: 520,
+        balancedNaturalFrequency: 2.55,
+        balancedDampingRatio: 0.92
+      };
+
+      const game = {
+        round: 0,
+        successes: 0,
+        state: "ready",
+        sound: false,
+        audioContext: null,
+        values: null,
+        lastResult: null,
+        testStartedAt: 0,
+        currentAnimationMs: 2100,
+        resultVisible: false,
+        motion: null,
+        dpr: 1,
+        width: 900,
+        height: 560
+      };
+
+      function randomBetween(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function roundTo(value, decimals) {
+        const p = Math.pow(10, decimals);
+        return Math.round(value * p) / p;
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+      }
+
+      function getFailureSeverity(ratio) {
+        const errorBeyondSafeZone = Math.max(0, Math.abs(ratio - 1) - config.tolerance);
+        return clamp(errorBeyondSafeZone / 0.75, 0.03, 1);
+      }
+
+      function formatMass(value) {
+        return `${value.toLocaleString("es-MX")} kg`;
+      }
+
+      function formatDistance(value) {
+        return `${value.toFixed(2)} m`;
+      }
+
+      function formatTorque(value) {
+        return `${value.toLocaleString("es-MX", { maximumFractionDigits: 1 })} kg·m`;
+      }
+
+      function formatDeviation(percent) {
+        const abs = Math.abs(percent);
+        if (abs < 0.5) return "0% · justo";
+        if (percent > 0) return `${abs.toFixed(0)}% hacia la izquierda`;
+        const used = Math.max(0, 100 - abs);
+        return `${abs.toFixed(0)}% hacia la derecha · ${used.toFixed(0)}% de distancia`;
+      }
+
+      function setMessage(html) {
+        ui.messageBox.innerHTML = html;
+      }
+
+      function generateRoundValues() {
+        for (let attempt = 0; attempt < 7000; attempt++) {
+          const loadMass = Math.round(randomBetween(config.loadMassMin, config.loadMassMax));
+          const loadDistance = roundTo(randomBetween(config.loadDistanceMin, config.loadDistanceMax), 2);
+          const rightBallastMass = Math.round(randomBetween(config.rightBallastMassMin, config.rightBallastMassMax));
+          const rightBallastDistance = roundTo(randomBetween(config.rightBallastDistanceMin, config.rightBallastDistanceMax), 2);
+          const counterMass = Math.round(randomBetween(config.counterMassMin, config.counterMassMax));
+          const loadTorque = loadMass * loadDistance;
+          const rightBallastTorque = rightBallastMass * rightBallastDistance;
+          const rightTorque = loadTorque + rightBallastTorque;
+          const idealDistance = rightTorque / counterMass;
+
+          if (idealDistance >= config.idealMin && idealDistance <= config.idealMax) {
+            return {
+              loadMass,
+              loadDistance,
+              rightBallastMass,
+              rightBallastDistance,
+              counterMass,
+              counterDistance: 0.00,
+              idealDistance,
+              loadTorque,
+              rightBallastTorque,
+              rightTorque
+            };
+          }
+        }
+
+        const fallback = {
+          loadMass: 620,
+          loadDistance: 5.35,
+          rightBallastMass: 180,
+          rightBallastDistance: 2.40,
+          counterMass: 1250,
+          counterDistance: 0.00
+        };
+        fallback.loadTorque = fallback.loadMass * fallback.loadDistance;
+        fallback.rightBallastTorque = fallback.rightBallastMass * fallback.rightBallastDistance;
+        fallback.rightTorque = fallback.loadTorque + fallback.rightBallastTorque;
+        fallback.idealDistance = fallback.rightTorque / fallback.counterMass;
+        return fallback;
+      }
+
+      function newRound() {
+        game.round += 1;
+        game.state = "ready";
+        game.values = generateRoundValues();
+        game.lastResult = null;
+        game.resultVisible = false;
+        game.testStartedAt = 0;
+        game.currentAnimationMs = config.resultDelayMs;
+        game.motion = { theta: config.startTilt, omega: 0, lastTime: 0, finished: false, finishedAt: 0 };
+
+        setMessage("La pluma está caída hacia la carga. El lado derecho tiene una carga de rescate y un lastre fijo. Calcula y ajusta la distancia del contrapeso necesario para levantar la carga.");
+        clearResultPanel();
+        updateUI();
+        playSound("new");
+      }
+
+      function clearResultPanel() {
+        ui.rightTorqueLabel.textContent = "—";
+        ui.counterTorqueLabel.textContent = "—";
+        ui.ratioLabel.textContent = "—";
+        ui.deviationLabel.textContent = "—";
+        ui.diagnosisLabel.textContent = "—";
+      }
+
+      function updateUI() {
+        const v = game.values;
+        ui.roundLabel.textContent = game.round;
+        ui.successLabel.textContent = game.successes;
+        ui.loadMassLabel.textContent = formatMass(v.loadMass);
+        ui.loadDistanceLabel.textContent = formatDistance(v.loadDistance);
+        ui.rightBallastMassLabel.textContent = formatMass(v.rightBallastMass);
+        ui.rightBallastDistanceLabel.textContent = formatDistance(v.rightBallastDistance);
+        ui.counterMassLabel.textContent = formatMass(v.counterMass);
+        ui.counterDistanceLabel.textContent = formatDistance(v.counterDistance);
+
+        const locked = game.state === "testing";
+        ui.leftButton.disabled = locked;
+        ui.rightButton.disabled = locked;
+        ui.upButton.disabled = locked;
+        ui.downButton.disabled = locked;
+        ui.testButton.disabled = locked;
+      }
+
+      function moveCounter(delta) {
+        if (game.state === "testing") return;
+        const v = game.values;
+        v.counterDistance = roundTo(clamp(v.counterDistance + delta, config.railMin, config.railMax), 2);
+        game.lastResult = null;
+        game.resultVisible = false;
+        clearResultPanel();
+        setMessage("Ajusta la posición. Cuando estés listo, presiona <strong>Probar levantamiento</strong>.");
+        updateUI();
+        playSound("tick");
+      }
+
+      function testLift() {
+        if (game.state === "testing") return;
+
+        const v = game.values;
+        const rightTorque = v.rightTorque;
+        const counterTorque = v.counterMass * v.counterDistance;
+        const ratio = counterTorque / rightTorque;
+        const balanced = ratio >= 1 - config.tolerance && ratio <= 1 + config.tolerance;
+        const tooLow = ratio < 1 - config.tolerance;
+        const tooHigh = ratio > 1 + config.tolerance;
+        const distanceErrorPercent = (v.counterDistance / v.idealDistance - 1) * 100;
+        const severity = getFailureSeverity(ratio);
+
+        game.currentAnimationMs = balanced
+          ? config.resultDelayMs
+          : Math.round(lerp(config.maxFailAnimationMs, config.minFailAnimationMs, Math.pow(severity, 0.72)));
+
+        game.lastResult = {
+          rightTorque,
+          counterTorque,
+          ratio,
+          balanced,
+          tooLow,
+          tooHigh,
+          distanceErrorPercent,
+          severity
+        };
+        game.state = "testing";
+        game.testStartedAt = performance.now();
+        game.motion = {
+          theta: config.startTilt,
+          omega: 0,
+          lastTime: game.testStartedAt,
+          finished: false,
+          finishedAt: 0
+        };
+        game.resultVisible = false;
+        updateUI();
+        setMessage("Probando levantamiento... la pluma ahora responde al torque neto y a su inercia angular.");
+        playSound("test");
+      }
+
+      function revealResult() {
+        const r = game.lastResult;
+        if (!r || game.resultVisible) return;
+
+        game.resultVisible = true;
+        game.state = "result";
+
+        ui.rightTorqueLabel.textContent = formatTorque(r.rightTorque);
+        ui.counterTorqueLabel.textContent = formatTorque(r.counterTorque);
+        ui.ratioLabel.textContent = r.ratio.toFixed(3);
+        ui.deviationLabel.textContent = formatDeviation(r.distanceErrorPercent);
+
+        if (r.balanced) {
+          game.successes += 1;
+          ui.diagnosisLabel.textContent = "Horizontal recuperada";
+          setMessage("<strong>Carga asegurada.</strong> La pluma recuperó la horizontal dentro de la zona segura.");
+          playSound("success");
+        } else if (r.tooLow) {
+          ui.diagnosisLabel.textContent = "Contrapeso insuficiente";
+          setMessage("<strong>Fallo: contrapeso insuficiente.</strong> El lado derecho domina y la pluma cae hacia la carga.");
+          playSound("fail");
+        } else {
+          ui.diagnosisLabel.textContent = "Contrapeso excesivo";
+          setMessage("<strong>Fallo: exceso de contrapeso.</strong> El lado izquierdo domina y la pluma cae hacia el contrapeso.");
+          playSound("fail");
+        }
+
+        updateUI();
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        game.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        game.width = Math.floor(rect.width * game.dpr);
+        game.height = Math.floor(rect.height * game.dpr);
+        canvas.width = game.width;
+        canvas.height = game.height;
+      }
+
+      function draw() {
+        const w = game.width;
+        const h = game.height;
+        ctx.clearRect(0, 0, w, h);
+        drawBackground(w, h);
+
+        const v = game.values;
+        if (!v) {
+          requestAnimationFrame(draw);
+          return;
+        }
+
+        const pivot = { x: w * 0.52, y: h * 0.38 };
+        const pxPerM = Math.min(w / 18.5, h / 8.5);
+
+        const armLength = 7.35 * pxPerM;
+        const groundY = h * 0.78;
+        const contactTilt = Math.asin(clamp((groundY - pivot.y) / armLength, 0.15, 0.98));
+        updateAngularMotion(performance.now(), contactTilt);
+        const tilt = game.motion ? game.motion.theta : config.startTilt;
+
+        drawGround(w, h);
+        drawTower(pivot, pxPerM);
+        drawCraneSystem(pivot, pxPerM, tilt);
+        drawDeviationGauge(w, h);
+
+        requestAnimationFrame(draw);
+      }
+
+      function getEffectiveInertia(values) {
+        const fullArmLength = 14.7;
+        const armInertia = (config.armMass * fullArmLength * fullArmLength) / 12;
+        const counterInertia = values.counterMass * values.counterDistance * values.counterDistance;
+        const loadInertia = values.loadMass * values.loadDistance * values.loadDistance;
+        const ballastInertia = values.rightBallastMass * values.rightBallastDistance * values.rightBallastDistance;
+        return Math.max(1, armInertia + counterInertia + loadInertia + ballastInertia);
+      }
+
+      function finishMotion(theta, now) {
+        if (!game.motion || game.motion.finished) return;
+        game.motion.theta = theta;
+        game.motion.omega = 0;
+        game.motion.finished = true;
+        game.motion.finishedAt = now;
+      }
+
+      function updateAngularMotion(now, contactTilt) {
+        if (!game.motion) return;
+        if (game.state !== "testing") return;
+
+        const r = game.lastResult;
+        const v = game.values;
+        const m = game.motion;
+        if (!r || !v) return;
+
+        if (m.finished) {
+          if (now - m.finishedAt >= config.resultHoldMs) revealResult();
+          return;
+        }
+
+        let dt = (now - m.lastTime) / 1000;
+        m.lastTime = now;
+        if (!Number.isFinite(dt) || dt <= 0) return;
+        dt = Math.min(dt, config.maxPhysicsStep);
+
+        if (r.balanced) {
+          const wn = config.balancedNaturalFrequency;
+          const zeta = config.balancedDampingRatio;
+          const alpha = -wn * wn * m.theta - 2 * zeta * wn * m.omega;
+          m.omega += alpha * dt;
+          m.theta += m.omega * dt;
+
+          if (Math.abs(m.theta) < 0.0045 && Math.abs(m.omega) < 0.012) {
+            finishMotion(0, now);
+          }
+          return;
+        }
+
+        const netKgM = v.rightTorque - r.counterTorque;
+        const inertia = getEffectiveInertia(v);
+        const gravitationalAlpha = (config.gravity * netKgM * Math.cos(m.theta)) / inertia;
+        const dampingAlpha = -config.failDamping * m.omega;
+        const alpha = gravitationalAlpha + dampingAlpha;
+
+        m.omega += alpha * dt;
+        m.theta += m.omega * dt;
+
+        if (r.tooLow && m.theta >= contactTilt) {
+          finishMotion(contactTilt, now);
+        } else if (r.tooHigh && m.theta <= -contactTilt) {
+          finishMotion(-contactTilt, now);
+        }
+      }
+
+      function drawBackground(w, h) {
+        const sky = ctx.createLinearGradient(0, 0, 0, h);
+        sky.addColorStop(0, "#aee4ff");
+        sky.addColorStop(0.58, "#edfaff");
+        sky.addColorStop(1, "#eaf7d8");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.globalAlpha = 0.82;
+        const sunR = 42 * game.dpr;
+        const sx = 70 * game.dpr;
+        const sy = 58 * game.dpr;
+        const sun = ctx.createRadialGradient(sx, sy, 0, sx, sy, sunR * 1.8);
+        sun.addColorStop(0, "rgba(255, 214, 102, 0.95)");
+        sun.addColorStop(1, "rgba(255, 214, 102, 0)");
+        ctx.fillStyle = sun;
+        ctx.beginPath();
+        ctx.arc(sx, sy, sunR * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalAlpha = 0.16;
+        ctx.strokeStyle = "#0ea5e9";
+        ctx.lineWidth = 1 * game.dpr;
+        const step = 44 * game.dpr;
+        for (let x = -step; x < w + step; x += step) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x + h * 0.3, h);
+          ctx.stroke();
+        }
+        for (let y = 0; y < h; y += step) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawGround(w, h) {
+        const groundY = h * 0.78;
+        const grad = ctx.createLinearGradient(0, groundY, 0, h);
+        grad.addColorStop(0, "#9bcf76");
+        grad.addColorStop(1, "#6aa35d");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, groundY, w, h - groundY);
+
+        ctx.strokeStyle = "rgba(77, 124, 15, 0.55)";
+        ctx.lineWidth = 2 * game.dpr;
+        ctx.beginPath();
+        ctx.moveTo(0, groundY);
+        ctx.lineTo(w, groundY);
+        ctx.stroke();
+
+        ctx.save();
+        ctx.globalAlpha = 0.2;
+        ctx.strokeStyle = "#365314";
+        ctx.lineWidth = 1 * game.dpr;
+        for (let x = -60 * game.dpr; x < w; x += 60 * game.dpr) {
+          ctx.beginPath();
+          ctx.moveTo(x, groundY + 28 * game.dpr);
+          ctx.lineTo(x + 35 * game.dpr, groundY + 8 * game.dpr);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawTower(pivot, pxPerM) {
+        const groundY = game.height * 0.78;
+        const baseW = pxPerM * 1.65;
+        const baseH = pxPerM * 0.38;
+
+        ctx.save();
+        ctx.strokeStyle = "#0f766e";
+        ctx.lineWidth = Math.max(5 * game.dpr, pxPerM * 0.08);
+        ctx.lineCap = "round";
+
+        ctx.beginPath();
+        ctx.moveTo(pivot.x, pivot.y);
+        ctx.lineTo(pivot.x, groundY);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(15, 118, 110, 0.45)";
+        ctx.lineWidth = Math.max(2 * game.dpr, pxPerM * 0.035);
+        for (let y = pivot.y + pxPerM * 0.5; y < groundY - pxPerM * 0.5; y += pxPerM * 0.55) {
+          ctx.beginPath();
+          ctx.moveTo(pivot.x - pxPerM * 0.22, y);
+          ctx.lineTo(pivot.x + pxPerM * 0.22, y + pxPerM * 0.28);
+          ctx.moveTo(pivot.x + pxPerM * 0.22, y);
+          ctx.lineTo(pivot.x - pxPerM * 0.22, y + pxPerM * 0.28);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.fillStyle = "#0f766e";
+        roundRect(ctx, pivot.x - baseW / 2, groundY - baseH, baseW, baseH, 10 * game.dpr, true, false);
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2 * game.dpr;
+        roundRect(ctx, pivot.x - baseW / 2, groundY - baseH, baseW, baseH, 10 * game.dpr, false, true);
+      }
+
+      function drawCraneSystem(pivot, pxPerM, tilt) {
+        const v = game.values;
+        const armLeft = -7.35 * pxPerM;
+        const armRight = 7.35 * pxPerM;
+        const counterX = -v.counterDistance * pxPerM;
+        const loadX = v.loadDistance * pxPerM;
+        const ballastX = v.rightBallastDistance * pxPerM;
+        const groundY = game.height * 0.78;
+
+        const cos = Math.cos(tilt);
+        const sin = Math.sin(tilt);
+        const toWorld = (x, y) => ({
+          x: pivot.x + x * cos - y * sin,
+          y: pivot.y + x * sin + y * cos
+        });
+
+        ctx.save();
+        ctx.translate(pivot.x, pivot.y);
+        ctx.rotate(tilt);
+
+        drawRail(pxPerM);
+
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#f59e0b";
+        ctx.lineWidth = Math.max(8 * game.dpr, pxPerM * 0.13);
+        ctx.beginPath();
+        ctx.moveTo(armLeft, 0);
+        ctx.lineTo(armRight, 0);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(126, 82, 12, 0.28)";
+        ctx.lineWidth = Math.max(2 * game.dpr, pxPerM * 0.035);
+        for (let x = armLeft + pxPerM * 0.45; x < armRight - pxPerM * 0.45; x += pxPerM * 0.72) {
+          ctx.beginPath();
+          ctx.moveTo(x, -pxPerM * 0.16);
+          ctx.lineTo(x + pxPerM * 0.35, pxPerM * 0.16);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(0, 0, pxPerM * 0.17, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#213547";
+        ctx.lineWidth = 2 * game.dpr;
+        ctx.stroke();
+
+        ctx.restore();
+
+        const hookOffset = pxPerM * config.hookOffsetM;
+        const counterHook = toWorld(counterX, hookOffset);
+        const loadHook = toWorld(loadX, hookOffset);
+        const ballastHook = toWorld(ballastX, hookOffset);
+        const initialLoadHookY = pivot.y + loadX * Math.sin(config.startTilt) + hookOffset * Math.cos(config.startTilt);
+        const boxH = pxPerM * 0.62;
+        const loadRopeLength = Math.max(pxPerM * 0.35, groundY - boxH - initialLoadHookY);
+
+        drawVerticalCounterweight(counterHook, pxPerM);
+        drawVerticalRightBallast(ballastHook, pxPerM);
+        drawVerticalLoad(loadHook, pxPerM, groundY, loadRopeLength);
+      }
+
+      function drawRail(pxPerM) {
+        const y = -pxPerM * 0.55;
+        ctx.strokeStyle = "rgba(14, 165, 233, 0.62)";
+        ctx.lineWidth = 2 * game.dpr;
+        ctx.beginPath();
+        ctx.moveTo(-config.railMax * pxPerM, y);
+        ctx.lineTo(-config.railMin * pxPerM, y);
+        ctx.stroke();
+
+        ctx.fillStyle = "#0369a1";
+        ctx.font = `${12 * game.dpr}px system-ui`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (let m = 0; m <= 7; m++) {
+          const x = -m * pxPerM;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 5 * game.dpr);
+          ctx.lineTo(x, y + 5 * game.dpr);
+          ctx.stroke();
+          ctx.fillText(`${m} m`, x, y - 17 * game.dpr);
+        }
+      }
+
+      function drawVerticalCounterweight(hook, pxPerM) {
+        const w = pxPerM * 0.78;
+        const h = pxPerM * 0.54;
+        const rope = pxPerM * 0.45;
+        const topY = hook.y + rope;
+        const x = hook.x;
+
+        ctx.save();
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 2 * game.dpr;
+        ctx.beginPath();
+        ctx.moveTo(hook.x, hook.y);
+        ctx.lineTo(x, topY);
+        ctx.stroke();
+
+        ctx.fillStyle = "#0ea5e9";
+        roundRect(ctx, x - w / 2, topY, w, h, 8 * game.dpr, true, false);
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2 * game.dpr;
+        roundRect(ctx, x - w / 2, topY, w, h, 8 * game.dpr, false, true);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `900 ${12 * game.dpr}px system-ui`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("CP", x, topY + h / 2);
+        ctx.restore();
+      }
+
+      function drawVerticalRightBallast(hook, pxPerM) {
+        const w = pxPerM * 0.58;
+        const h = pxPerM * 0.44;
+        const rope = pxPerM * 0.36;
+        const topY = hook.y + rope;
+        const x = hook.x;
+
+        ctx.save();
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 2 * game.dpr;
+        ctx.beginPath();
+        ctx.moveTo(hook.x, hook.y);
+        ctx.lineTo(x, topY);
+        ctx.stroke();
+
+        ctx.fillStyle = "#7c3aed";
+        roundRect(ctx, x - w / 2, topY, w, h, 7 * game.dpr, true, false);
+        ctx.strokeStyle = "#f5f3ff";
+        ctx.lineWidth = 2 * game.dpr;
+        roundRect(ctx, x - w / 2, topY, w, h, 7 * game.dpr, false, true);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `900 ${10.5 * game.dpr}px system-ui`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("LD", x, topY + h / 2);
+        ctx.restore();
+      }
+
+      function drawVerticalLoad(hook, pxPerM, groundY, ropeLength) {
+        const boxW = pxPerM * 0.82;
+        const boxH = pxPerM * 0.62;
+        const groundTop = groundY - boxH;
+        const suspendedTop = hook.y + ropeLength;
+        const boxTop = Math.min(groundTop, suspendedTop);
+        const isOnGround = boxTop >= groundTop - 1 * game.dpr;
+        const x = hook.x;
+
+        ctx.save();
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 2 * game.dpr;
+        ctx.beginPath();
+        ctx.moveTo(hook.x, hook.y);
+        ctx.lineTo(x, boxTop);
+        ctx.stroke();
+
+        ctx.fillStyle = "#f97316";
+        roundRect(ctx, x - boxW / 2, boxTop, boxW, boxH, 8 * game.dpr, true, false);
+        ctx.strokeStyle = "#fff7ed";
+        ctx.lineWidth = 2 * game.dpr;
+        roundRect(ctx, x - boxW / 2, boxTop, boxW, boxH, 8 * game.dpr, false, true);
+
+        ctx.strokeStyle = "rgba(67, 20, 7, 0.35)";
+        ctx.lineWidth = 2 * game.dpr;
+        ctx.beginPath();
+        ctx.moveTo(x - boxW / 2, boxTop + boxH * 0.5);
+        ctx.lineTo(x + boxW / 2, boxTop + boxH * 0.5);
+        ctx.moveTo(x, boxTop);
+        ctx.lineTo(x, boxTop + boxH);
+        ctx.stroke();
+
+        ctx.fillStyle = "#fff7ed";
+        ctx.font = `900 ${11 * game.dpr}px system-ui`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("C", x, boxTop + boxH / 2);
+
+        if (isOnGround) {
+          ctx.fillStyle = "rgba(120, 53, 15, 0.22)";
+          roundRect(ctx, x - boxW * 0.62, groundY - 4 * game.dpr, boxW * 1.24, 5 * game.dpr, 999, true, false);
+        }
+        ctx.restore();
+      }
+
+      function drawDeviationGauge(w, h) {
+        const r = game.lastResult;
+        const active = Boolean(r);
+        const bw = Math.min(w * 0.40, 390 * game.dpr);
+        const cardH = 46 * game.dpr;
+        const x = w - bw - 34 * game.dpr;
+        const y = h - cardH - 8 * game.dpr;
+        const bh = 10 * game.dpr;
+        const barY = y + 24 * game.dpr;
+        const centerX = x + bw / 2;
+
+        ctx.save();
+        ctx.fillStyle = "rgba(255, 250, 240, 0.90)";
+        roundRect(ctx, x - 16 * game.dpr, y, bw + 32 * game.dpr, cardH, 12 * game.dpr, true, false);
+        ctx.strokeStyle = "rgba(185, 210, 223, 0.95)";
+        ctx.lineWidth = 1.5 * game.dpr;
+        roundRect(ctx, x - 16 * game.dpr, y, bw + 32 * game.dpr, cardH, 12 * game.dpr, false, true);
+
+        ctx.fillStyle = "#475569";
+        ctx.font = `800 ${11.5 * game.dpr}px system-ui`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText("Desviación", x, y + 15 * game.dpr);
+
+        ctx.fillStyle = active ? "rgba(148, 163, 184, 0.28)" : "rgba(148, 163, 184, 0.15)";
+        roundRect(ctx, x, barY, bw, bh, 999, true, false);
+
+        const safeW = bw * config.tolerance;
+        ctx.fillStyle = active ? "rgba(22, 163, 74, 0.52)" : "rgba(148, 163, 184, 0.20)";
+        roundRect(ctx, centerX - safeW, barY, safeW * 2, bh, 999, true, false);
+
+        ctx.strokeStyle = "rgba(71, 85, 105, 0.45)";
+        ctx.lineWidth = 1.3 * game.dpr;
+        ctx.beginPath();
+        ctx.moveTo(centerX, barY - 4 * game.dpr);
+        ctx.lineTo(centerX, barY + bh + 4 * game.dpr);
+        ctx.stroke();
+
+        ctx.fillStyle = "#617080";
+        ctx.font = `${9.5 * game.dpr}px system-ui`;
+        ctx.textAlign = "center";
+        ctx.fillText("100% izq.", x, y + 41 * game.dpr);
+        ctx.fillText("0%", centerX, y + 41 * game.dpr);
+        ctx.fillText("100% der.", x + bw, y + 41 * game.dpr);
+
+        if (active) {
+          const percent = r.distanceErrorPercent;
+          const markerScale = clamp(percent / 100, -1.16, 1.16);
+          const marker = centerX - markerScale * (bw / 2);
+          const outside = Math.abs(percent) > 100;
+          const absPercent = Math.abs(percent);
+
+          ctx.fillStyle = r.balanced && game.resultVisible ? "#15803d" : outside ? "#dc2626" : "#f59e0b";
+          ctx.beginPath();
+          ctx.arc(marker, barY + bh / 2, 6.5 * game.dpr, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.92)";
+          ctx.lineWidth = 1.5 * game.dpr;
+          ctx.stroke();
+
+          ctx.fillStyle = "#213547";
+          ctx.font = `900 ${11 * game.dpr}px system-ui`;
+          ctx.textAlign = "right";
+          let label;
+          if (absPercent < 0.5) {
+            label = "0% · justo";
+          } else if (percent > 0) {
+            label = `${absPercent.toFixed(0)}% izq.${outside ? " · fuera" : ""}`;
+          } else {
+            const remaining = Math.max(0, 100 - absPercent);
+            label = `${absPercent.toFixed(0)}% der. · ${remaining.toFixed(0)}% usado${outside ? " · fuera" : ""}`;
+          }
+          ctx.fillText(label, x + bw, y + 15 * game.dpr);
+        } else {
+          ctx.fillStyle = "#617080";
+          ctx.font = `${10.5 * game.dpr}px system-ui`;
+          ctx.textAlign = "right";
+          ctx.fillText("se activa al probar", x + bw, y + 15 * game.dpr);
+        }
+
+        ctx.restore();
+      }
+
+      function roundRect(context, x, y, width, height, radius, fill, stroke) {
+        const r = Math.min(radius, width / 2, height / 2);
+        context.beginPath();
+        context.moveTo(x + r, y);
+        context.arcTo(x + width, y, x + width, y + height, r);
+        context.arcTo(x + width, y + height, x, y + height, r);
+        context.arcTo(x, y + height, x, y, r);
+        context.arcTo(x, y, x + width, y, r);
+        context.closePath();
+        if (fill) context.fill();
+        if (stroke) context.stroke();
+      }
+
+      function ensureAudio() {
+        if (!game.audioContext) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) game.audioContext = new AudioContext();
+        }
+        if (game.audioContext && game.audioContext.state === "suspended") {
+          game.audioContext.resume();
+        }
+      }
+
+      function playSound(type) {
+        if (!game.sound) return;
+        ensureAudio();
+        const ac = game.audioContext;
+        if (!ac) return;
+
+        const now = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.connect(gain);
+        gain.connect(ac.destination);
+
+        const presets = {
+          tick: [420, 0.035, 0.025],
+          test: [220, 0.18, 0.035],
+          success: [660, 0.16, 0.055],
+          fail: [140, 0.22, 0.06],
+          new: [520, 0.08, 0.035]
+        };
+        const [freq, duration, volume] = presets[type] || presets.tick;
+        osc.type = type === "fail" ? "sawtooth" : "sine";
+        osc.frequency.setValueAtTime(freq, now);
+        if (type === "success") osc.frequency.exponentialRampToValueAtTime(880, now + duration);
+        if (type === "fail") osc.frequency.exponentialRampToValueAtTime(80, now + duration);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+      }
+
+      function bindEvents() {
+        ui.leftButton.addEventListener("click", () => moveCounter(config.coarseStep));
+        ui.rightButton.addEventListener("click", () => moveCounter(-config.coarseStep));
+        ui.upButton.addEventListener("click", () => moveCounter(config.fineStep));
+        ui.downButton.addEventListener("click", () => moveCounter(-config.fineStep));
+        ui.testButton.addEventListener("click", testLift);
+        ui.newRoundButton.addEventListener("click", newRound);
+
+        ui.soundButton.addEventListener("click", () => {
+          game.sound = !game.sound;
+          ui.soundButton.textContent = `Sonido: ${game.sound ? "encendido" : "apagado"}`;
+          if (game.sound) {
+            ensureAudio();
+            playSound("new");
+          }
+        });
+
+        window.addEventListener("keydown", (event) => {
+          if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "Enter"].includes(event.key)) {
+            event.preventDefault();
+          }
+
+          if (event.key === "ArrowLeft") moveCounter(config.coarseStep);
+          if (event.key === "ArrowRight") moveCounter(-config.coarseStep);
+          if (event.key === "ArrowUp") moveCounter(config.fineStep);
+          if (event.key === "ArrowDown") moveCounter(-config.fineStep);
+          if (event.key === "Enter" || event.key === " ") testLift();
+        });
+
+        window.addEventListener("resize", resizeCanvas);
+      }
+
+      bindEvents();
+      resizeCanvas();
+      newRound();
+      requestAnimationFrame(draw);
+    })();
+  </script>
+</body>
+</html>
